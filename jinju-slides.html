@@ -1,0 +1,960 @@
+<title>진주, 등불의 밤</title>
+<meta name="description" content="폴더 속 사진 4장과 행정구역 지도로 엮은 진주 여행 안내 인터랙티브 슬라이드">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Hahmlet:wght@300;500;700&family=IBM+Plex+Sans+KR:wght@400;500;700&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+:root{
+  color-scheme: dark;
+  --night:#0d1320;
+  --river:#152036;
+  --river-2:#1d2b47;
+  --lantern:#f2a93b;
+  --lantern-soft:#f6c878;
+  --ember:#e0684a;
+  --jade:#7fb7a4;
+  --paper:#f3ead8;
+  --muted:#9ba4b6;
+  --line:rgba(243,234,216,.14);
+  --display:'Hahmlet','Nanum Myeongjo',serif;
+  --body:'IBM Plex Sans KR','Apple SD Gothic Neo','Malgun Gothic',sans-serif;
+  --mono:'IBM Plex Mono',ui-monospace,Consolas,monospace;
+  --ease:cubic-bezier(.2,.8,.2,1);
+}
+*{box-sizing:border-box}
+html,body{height:100%}
+body{margin:0;background:var(--night);color:var(--paper);font-family:var(--body);font-size:15px;line-height:1.65;
+  word-break:keep-all;overflow-wrap:break-word;line-break:strict;overflow:hidden}
+h1,h2,h3,p,ul,figure{margin:0}
+h1,h2,h3{font-family:var(--display);font-weight:500;text-wrap:balance;letter-spacing:-.02em}
+button{font:inherit;color:inherit;background:none;border:0;cursor:pointer}
+button:focus-visible,a:focus-visible{outline:2px solid var(--lantern);outline-offset:4px;border-radius:4px}
+a{color:var(--lantern-soft)}
+em{font-style:normal;color:var(--lantern)}
+
+/* lantern glow that follows the cursor */
+.glow{position:fixed;inset:0;pointer-events:none;z-index:0;
+  background:radial-gradient(420px circle at var(--gx,70%) var(--gy,30%),rgba(242,169,59,.13),transparent 60%),
+             radial-gradient(900px circle at 10% 110%,rgba(127,183,164,.08),transparent 60%);
+  transition:background .2s}
+
+.deck{position:relative;z-index:1;height:100%;display:grid;grid-template-rows:auto 1fr auto;padding-inline:16px}
+.topbar,.bottombar{display:flex;align-items:center;justify-content:space-between;gap:16px;max-width:1440px;width:100%;margin:0 auto}
+.topbar{height:64px;border-bottom:1px solid var(--line);padding-top:env(safe-area-inset-top,0px)}
+.brand{display:flex;align-items:baseline;gap:14px;font-family:var(--display);font-size:20px;font-weight:700}
+.brand small{font-family:var(--mono);font-size:10px;letter-spacing:.2em;color:var(--muted);font-weight:400}
+.legend-key{display:flex;gap:14px;font-size:12px;color:var(--muted);flex-wrap:wrap;justify-content:flex-end}
+.legend-key span{display:inline-flex;align-items:center;gap:6px}
+
+.stage{position:relative;max-width:1440px;width:100%;margin:0 auto;display:grid;grid-template-columns:64px 1fr;min-height:0}
+.rail{display:flex;flex-direction:column;justify-content:center;gap:6px}
+.rail button{font-family:var(--mono);font-size:12px;color:var(--muted);padding:6px 0;text-align:left;position:relative;transition:color .3s}
+.rail button::after{content:'';position:absolute;left:28px;top:50%;height:1px;width:0;background:var(--lantern);transition:width .4s var(--ease)}
+.rail button[aria-current="true"]{color:var(--lantern)}
+.rail button[aria-current="true"]::after{width:22px}
+.rail button:hover{color:var(--paper)}
+
+.slides{position:relative;min-height:0}
+.slide{position:absolute;inset:0;padding:28px 0 20px;overflow-y:auto;display:none}
+.slide.active{display:block;animation:slideIn .7s var(--ease) both}
+@keyframes slideIn{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:none}}
+.slide-inner{min-height:100%;display:grid;align-content:center;gap:28px}
+
+.eyebrow{font-family:var(--mono);font-size:11px;letter-spacing:.22em;color:var(--lantern-soft);display:flex;align-items:center;gap:10px;text-transform:uppercase}
+.eyebrow::before{content:'';width:8px;height:8px;border-radius:50%;background:var(--lantern);box-shadow:0 0 12px var(--lantern)}
+.h-xl{font-size:clamp(34px,5.2vw,78px);line-height:1.18;font-weight:300}
+.h-xl strong{font-weight:700}
+.h-lg{font-size:clamp(26px,3.2vw,46px);line-height:1.3}
+.lede{color:var(--muted);font-size:16px;max-width:38em}
+.lede strong{color:var(--paper);font-weight:500}
+
+/* confirm-needed tag */
+.need{display:inline-flex;align-items:center;gap:5px;font-size:11px;font-weight:700;letter-spacing:.02em;color:var(--night);background:var(--ember);
+  padding:2px 8px;border-radius:999px;white-space:nowrap;vertical-align:middle}
+.need::before{content:'?';font-family:var(--mono)}
+.sample{position:absolute;left:12px;top:12px;z-index:3;font-size:11px;font-weight:700;color:var(--night);background:var(--paper);padding:3px 9px;border-radius:999px}
+.photo-tag{position:absolute;right:12px;bottom:12px;z-index:3;font-family:var(--mono);font-size:10px;color:var(--paper);background:rgba(13,19,32,.7);padding:3px 8px;border-radius:4px;letter-spacing:.06em}
+
+/* split layout */
+.split{display:grid;grid-template-columns:minmax(0,1.25fr) minmax(0,1fr);gap:clamp(24px,4vw,64px);align-items:center}
+.split.rev{grid-template-columns:minmax(0,1fr) minmax(0,1.25fr)}
+.copy{display:grid;gap:18px;align-content:center}
+
+/* tilt photo */
+.tilt{position:relative;perspective:1100px}
+.tilt-card{position:relative;border-radius:6px;overflow:hidden;transform-style:preserve-3d;
+  transform:rotateX(var(--rx,0deg)) rotateY(var(--ry,0deg));transition:transform .5s var(--ease),box-shadow .5s;
+  box-shadow:0 30px 60px -30px rgba(0,0,0,.8),0 0 0 1px var(--line)}
+.tilt.is-active .tilt-card{transition:transform .08s linear;box-shadow:0 40px 80px -30px rgba(0,0,0,.9),0 0 50px -10px rgba(242,169,59,.35)}
+.tilt-card img{display:block;width:100%;height:auto;max-width:100%;
+  transform:scale(1.06) translate(var(--px,0px),var(--py,0px));transition:transform .5s var(--ease)}
+.tilt.is-active .tilt-card img{transition:transform .08s linear}
+.slide.active .tilt-card img{animation:photoReveal 1.1s var(--ease) both}
+@keyframes photoReveal{from{filter:blur(6px) brightness(.6)}to{filter:none}}
+.glare{position:absolute;inset:0;z-index:2;pointer-events:none;opacity:0;transition:opacity .4s;
+  background:radial-gradient(360px circle at var(--mx,50%) var(--my,50%),rgba(255,236,200,.22),transparent 60%)}
+.tilt.is-active .glare{opacity:1}
+
+/* hotspots */
+.spot{position:absolute;z-index:4;left:var(--x);top:var(--y);transform:translate(-50%,-50%)}
+.spot button{width:26px;height:26px;border-radius:50%;background:rgba(242,169,59,.9);color:var(--night);font-family:var(--mono);font-size:11px;font-weight:500;
+  display:grid;place-items:center;box-shadow:0 0 0 0 rgba(242,169,59,.6);animation:pulse 2.4s infinite}
+@keyframes pulse{0%{box-shadow:0 0 0 0 rgba(242,169,59,.55)}70%{box-shadow:0 0 0 14px rgba(242,169,59,0)}100%{box-shadow:0 0 0 0 rgba(242,169,59,0)}}
+.spot .tip{position:absolute;left:50%;bottom:calc(100% + 10px);transform:translate(-50%,6px);width:max-content;max-width:210px;
+  background:var(--paper);color:var(--night);font-size:12.5px;line-height:1.5;padding:8px 11px;border-radius:6px;opacity:0;pointer-events:none;transition:.25s var(--ease)}
+.spot:hover .tip,.spot:focus-within .tip,.spot.open .tip{opacity:1;transform:translate(-50%,0)}
+.spot.right .tip{left:auto;right:-6px;transform:translateY(6px)}
+.spot.right:hover .tip,.spot.right:focus-within .tip,.spot.right.open .tip{transform:none}
+
+/* observation list */
+.obs{list-style:none;padding:0;display:grid;gap:0;border-top:1px solid var(--line)}
+.obs li{display:grid;grid-template-columns:28px 1fr;gap:10px;padding:11px 0;border-bottom:1px solid var(--line);transition:background .25s,padding .25s}
+.obs li b{font-family:var(--mono);font-weight:500;font-size:12px;color:var(--lantern);padding-top:2px}
+.obs li.hl{background:rgba(242,169,59,.08);padding-left:8px}
+.unknown{display:flex;flex-wrap:wrap;gap:8px 10px;align-items:center;font-size:13px;color:var(--muted)}
+.unknown .lbl{color:var(--paper);font-weight:500;margin-right:2px}
+.chip{border:1px solid var(--line);border-radius:999px;padding:3px 10px;display:inline-flex;align-items:center;gap:6px}
+.chip .need{padding:1px 6px;font-size:10px}
+
+/* cover */
+.cover{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.1fr);gap:clamp(24px,4vw,60px);align-items:center}
+.fan{position:relative;aspect-ratio:5/4;max-width:100%}
+.fan .tilt{position:absolute;width:62%;transition:transform .6s var(--ease),z-index 0s}
+.fan .tilt:nth-child(1){left:0;top:4%;transform:rotate(-6deg);z-index:1}
+.fan .tilt:nth-child(2){left:36%;top:0;transform:rotate(4deg);z-index:2}
+.fan .tilt:nth-child(3){left:18%;top:42%;transform:rotate(-1deg);z-index:3}
+.fan .tilt:hover{z-index:5;transform:rotate(0) scale(1.04)}
+.fan figcaption{position:absolute;left:10px;bottom:10px;z-index:3;font-size:12px;background:rgba(13,19,32,.72);padding:3px 9px;border-radius:4px}
+.start{justify-self:start;display:inline-flex;gap:10px;align-items:center;border:1px solid var(--lantern);color:var(--lantern);padding:11px 20px;border-radius:999px;
+  transition:background .3s,color .3s,transform .3s}
+.start:hover{background:var(--lantern);color:var(--night);transform:translateY(-2px)}
+.note{font-size:12.5px;color:var(--muted);border-left:2px solid var(--ember);padding-left:12px}
+
+/* map facts */
+.compass{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;font-size:13px;text-align:center}
+.compass div{border:1px solid var(--line);border-radius:6px;padding:10px 6px;transition:border-color .25s,background .25s}
+.compass div:hover{border-color:var(--jade);background:rgba(127,183,164,.08)}
+.compass .c{border-color:var(--lantern);color:var(--lantern);font-family:var(--display);font-weight:700}
+.compass .blank{border:0}
+.compass small{display:block;font-family:var(--mono);font-size:10px;color:var(--muted)}
+.facts{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:1px;background:var(--line);border:1px solid var(--line);border-radius:6px;overflow:hidden}
+.facts div{background:var(--night);padding:12px 14px;display:grid;gap:1px;transition:background .25s}
+.facts div:hover{background:color-mix(in srgb,var(--lantern) 6%,var(--night))}
+.facts dt{font-size:11px;color:var(--muted);font-family:var(--mono);letter-spacing:.08em}
+.facts dd{margin:0;font-family:var(--display);font-size:24px;font-weight:700;line-height:1.25;font-variant-numeric:tabular-nums}
+.facts dd small{font-family:var(--body);font-size:13px;font-weight:500;color:var(--muted);margin-left:3px}
+.facts span{font-size:11.5px;color:var(--muted)}
+.facts.stats dd{white-space:nowrap}
+.facts.stats div{padding:10px 14px}
+.facts.stats dd{font-size:22px}
+.facts.stats dd small{font-size:12px;margin-left:2px}
+.slide-inner .copy:has(.stats){gap:16px}
+.src{font-size:11px;color:var(--muted)}
+
+/* chart slide: 읍면동 지도 */
+.map-wrap{position:relative;max-width:680px;width:100%;justify-self:center;display:grid;gap:10px}
+.jmap{display:block;width:100%;height:auto;overflow:visible}
+.jmap path{stroke:var(--night);stroke-width:1;stroke-linejoin:round;vector-effect:non-scaling-stroke;cursor:pointer;
+  transition:fill .45s var(--ease),opacity .3s,filter .25s;outline:none}
+.jmap path.hi{filter:brightness(1.15)}
+.jmap .jhi{fill:none;stroke:var(--paper);stroke-width:2.2;pointer-events:none;animation:none!important}
+.jmap.dim path:not(.hi):not(.grp):not(.jhi){opacity:.28}
+.jmap text{font-family:var(--body);font-size:10px;font-weight:500;fill:var(--paper);text-anchor:middle;dominant-baseline:central;pointer-events:none;
+  paint-order:stroke;stroke:rgba(13,19,32,.7);stroke-width:2.5px;stroke-linejoin:round}
+.jmap text.dong{font-size:7px}
+.slide.active .jmap path{animation:regionIn .7s var(--ease) backwards;animation-delay:calc(var(--i)*22ms)}
+@keyframes regionIn{from{opacity:0;transform:scale(.96)}to{opacity:1;transform:none}}
+.jmap path{transform-box:fill-box;transform-origin:center}
+.map-tip{position:absolute;left:0;top:0;pointer-events:none;background:var(--paper);color:var(--night);border-radius:6px;padding:10px 12px;
+  min-width:150px;box-shadow:0 8px 24px rgba(0,0,0,.35);opacity:0;transform:translate(-50%,calc(-100% - 14px));transition:opacity .15s;z-index:3}
+.map-tip.on{opacity:1}
+.map-tip b{display:block;font-size:14px;font-weight:700}
+.map-tip b small{font-size:11px;font-weight:500;color:#5b6475;margin-left:6px}
+.map-tip .num{font-family:var(--display);font-size:24px;font-weight:700;line-height:1.2;font-variant-numeric:tabular-nums}
+.map-tip .meta{font-size:11.5px;color:#4a5263;line-height:1.5}
+.map-legend{display:flex;align-items:center;gap:10px;font-size:11px;color:var(--muted);flex-wrap:wrap;justify-content:center}
+.map-legend .ramp{width:140px;height:8px;border-radius:2px;background:linear-gradient(90deg,#2a3a55,#7fb7a4,#f2a93b)}
+.map-legend i{display:inline-block;width:10px;height:10px;border-radius:2px;margin-right:4px;vertical-align:-1px}
+.area-head{display:flex;align-items:center;justify-content:space-between;gap:12px;padding-top:4px}
+.area-head h3{font-size:17px}
+.groups{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
+.group{border:1px solid var(--line);border-radius:6px;padding:11px 13px;text-align:left;display:grid;gap:4px;transition:border-color .25s,background .25s}
+.group:hover,.group.on{border-color:var(--c);background:color-mix(in srgb,var(--c) 10%,transparent)}
+.group header{display:flex;align-items:center;gap:7px;font-size:14px}
+.group header i{width:9px;height:9px;border-radius:2px;background:var(--c);flex:none}
+.group header strong{font-family:var(--display);font-size:16px}
+.group header em{color:var(--muted);font-size:12px}
+.group .v{font-family:var(--mono);font-size:19px;color:var(--c);font-variant-numeric:tabular-nums;line-height:1.3}
+.group .bar{height:3px;border-radius:2px;background:var(--line);overflow:hidden}
+.group .bar b{display:block;height:100%;background:var(--c);transition:width .6s var(--ease)}
+
+/* checklist */
+.check{list-style:none;padding:0;display:grid;gap:8px}
+.check li button{width:100%;display:grid;grid-template-columns:22px 1fr auto;gap:12px;align-items:center;text-align:left;
+  border:1px solid var(--line);border-radius:6px;padding:12px 14px;transition:border-color .25s,background .25s,transform .25s}
+.check li button:hover{border-color:var(--lantern);transform:translateX(4px)}
+.check .box{width:18px;height:18px;border:1.5px solid var(--muted);border-radius:4px;display:grid;place-items:center;font-size:12px;color:var(--night)}
+.check li button[aria-pressed="true"]{background:rgba(127,183,164,.1);border-color:var(--jade)}
+.check li button[aria-pressed="true"] .box{background:var(--jade);border-color:var(--jade)}
+.check li button[aria-pressed="true"] .box::after{content:'✓'}
+.check small{display:block;color:var(--muted);font-size:12px}
+.illus{position:relative;border-radius:6px;overflow:hidden;background:linear-gradient(180deg,#121b2e,#1b2a46 60%,#0d1320);aspect-ratio:4/3;max-width:100%;box-shadow:0 0 0 1px var(--line)}
+.illus svg{display:block;width:100%;height:100%}
+.bob{animation:bob 5s ease-in-out infinite;transform-box:fill-box;transform-origin:center}
+.bob:nth-of-type(2n){animation-duration:6.5s;animation-delay:-2s}
+.bob:nth-of-type(3n){animation-duration:4.2s;animation-delay:-1s}
+@keyframes bob{0%,100%{transform:translateY(0)}50%{transform:translateY(-6px)}}
+
+/* bottom bar */
+.bottombar{height:58px;border-top:1px solid var(--line);font-size:12px;color:var(--muted);padding-bottom:env(safe-area-inset-bottom,0px)}
+.counter{font-family:var(--mono);font-variant-numeric:tabular-nums}
+.counter strong{color:var(--lantern);font-weight:500}
+.navs{display:flex;gap:8px}
+.navs button{width:36px;height:36px;border:1px solid var(--line);border-radius:50%;transition:border-color .2s,transform .2s}
+.navs button:hover:not(:disabled){border-color:var(--lantern);transform:translateY(-2px)}
+.navs button:disabled{opacity:.3;cursor:default}
+.progress{position:absolute;left:0;bottom:0;height:2px;background:var(--lantern);transition:width .6s var(--ease)}
+
+.seg{display:inline-flex;justify-self:start;border:1px solid var(--line);border-radius:999px;padding:3px;gap:2px}
+.seg button{font-size:13px;padding:5px 14px;border-radius:999px;color:var(--muted);transition:background .25s,color .25s}
+.seg button[aria-pressed="true"]{background:var(--lantern);color:var(--night);font-weight:700}
+.seg button:hover:not([aria-pressed="true"]){color:var(--paper)}
+.group header em{font-style:normal;font-size:12px;color:var(--muted);font-family:var(--mono);margin-left:6px}
+
+/* pavilions */
+.pav-head{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:16px 48px;align-items:end}
+.pavs{display:grid;grid-template-columns:minmax(0,1.5fr) repeat(3,minmax(0,1fr));gap:12px;align-items:start}
+.pav{position:relative;border:1px solid var(--line);border-radius:6px;padding:16px;display:grid;gap:8px;overflow:hidden;
+  transition:border-color .3s,transform .35s var(--ease),background .3s}
+.pav::before{content:'';position:absolute;inset:0;pointer-events:none;opacity:0;transition:opacity .3s;
+  background:radial-gradient(260px circle at var(--mx,50%) var(--my,0%),rgba(242,169,59,.16),transparent 65%)}
+.pav:hover,.pav:focus-visible{border-color:var(--lantern);transform:translateY(-3px);outline:none}
+.pav:hover::before,.pav:focus-visible::before{opacity:1}
+.pav header{display:grid;grid-template-columns:1fr auto;align-items:baseline;gap:2px 8px}
+.pav-kind{grid-column:1/-1;font-size:11px;color:var(--lantern-soft);letter-spacing:.04em}
+.pav h3{font-size:20px;font-weight:700}
+.pav-year{font-family:var(--mono);font-size:12px;color:var(--muted)}
+.pav p{font-size:13px;color:var(--muted);line-height:1.65}
+.pav-more{list-style:none;padding:0;margin:0;display:grid;gap:5px;font-size:12.5px;line-height:1.6;
+  max-height:0;opacity:0;overflow:hidden;transition:max-height .45s var(--ease),opacity .3s}
+.pav-more li{padding-left:12px;position:relative}
+.pav-more li::before{content:'';position:absolute;left:0;top:.7em;width:5px;height:1px;background:var(--lantern)}
+.pav:hover .pav-more,.pav:focus-within .pav-more,.pav.feature .pav-more{max-height:260px;opacity:1}
+.pav.feature{grid-row:span 2;background:linear-gradient(160deg,rgba(242,169,59,.10),transparent 60%);border-color:rgba(242,169,59,.45)}
+.pav.feature h3{font-size:clamp(26px,2.6vw,36px)}
+.pav.feature p{font-size:14px;color:var(--paper)}
+.pav.feature .pav-more{font-size:13.5px}
+
+/* sourced info */
+.src-line{font-size:11px;color:var(--muted);line-height:1.55}
+.src-line::before{content:'';display:inline-block;width:6px;height:6px;border-radius:50%;background:var(--jade);margin-right:6px;vertical-align:1px}
+.src-line a{color:var(--jade)}
+.kv{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:1px;background:var(--line);border:1px solid var(--line);border-radius:6px;overflow:hidden}
+.kv div{background:var(--night);padding:10px 13px;display:grid;gap:1px;transition:background .25s}
+.kv div:hover{background:var(--river)}
+.kv dt{font-size:11px;color:var(--muted)}
+.kv dd{margin:0;font-size:14px;font-variant-numeric:tabular-nums}
+.kv .wide{grid-column:1/-1}
+.fee{width:100%;border-collapse:collapse;font-size:13px;font-variant-numeric:tabular-nums}
+.fee th,.fee td{padding:7px 10px;border-bottom:1px solid var(--line);text-align:right}
+.fee th:first-child,.fee td:first-child{text-align:left}
+.fee thead th{font-size:11px;color:var(--muted);font-weight:500}
+.fee tbody tr{transition:background .2s}
+.fee tbody tr:hover{background:rgba(242,169,59,.08)}
+.fee caption{caption-side:bottom;text-align:left;font-size:11.5px;color:var(--muted);padding-top:8px}
+.pills{display:flex;flex-wrap:wrap;gap:6px}
+.pill{font-size:12.5px;border:1px solid var(--line);border-radius:999px;padding:4px 11px;transition:border-color .2s,color .2s}
+.pill:hover{border-color:var(--lantern);color:var(--lantern)}
+.date-big{font-family:var(--display);font-size:clamp(22px,2.4vw,32px);font-weight:700;color:var(--lantern);font-variant-numeric:tabular-nums;line-height:1.3}
+.date-big small{display:block;font-family:var(--body);font-size:12px;font-weight:400;color:var(--muted)}
+.bar-wrap{position:relative;width:100%;height:clamp(340px,56vh,500px)}
+.modes{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+.mode{border:1px solid var(--line);border-radius:6px;padding:11px 13px;display:grid;gap:3px;text-align:left;align-content:start;position:relative;
+  transition:border-color .25s,transform .25s,background .25s}
+.mode:hover{border-color:var(--lantern);transform:translateY(-2px)}
+.mode[aria-pressed="true"]{border-color:var(--lantern);background:rgba(242,169,59,.1)}
+.mode[aria-pressed="true"]::after{content:'그래프 표시 중';position:absolute;top:11px;right:12px;font-family:var(--mono);font-size:10px;color:var(--lantern);letter-spacing:.04em}
+.chart-panel{display:grid;gap:10px;min-width:0}
+.chart-head{display:grid;gap:2px;min-height:46px}
+.chart-title{font-family:var(--display);font-size:17px;font-weight:500}
+.chart-note{font-size:12.5px;color:var(--muted)}
+.mode strong{font-family:var(--display);font-size:15px}
+.mode span{font-size:12.5px;color:var(--muted);line-height:1.6}
+.mode.wide{grid-column:1/-1}
+
+/* 데스크톱: 화면 높이에 맞춰 글자·간격·사진을 줄여 스크롤 없이 한 화면에 */
+@media (min-width:901px){
+  .slide{padding:clamp(8px,2vh,28px) 0 clamp(6px,1.4vh,20px)}
+  .slide-inner{gap:clamp(10px,2.4vh,28px)}
+  .copy{gap:clamp(7px,1.6vh,18px)}
+  .h-xl{font-size:clamp(30px,min(5.2vw,8.4vh),78px)}
+  .h-lg{font-size:clamp(21px,min(3.2vw,4.9vh),46px);line-height:1.24}
+  .lede{font-size:clamp(13px,1.8vh,16px);line-height:1.6}
+  .eyebrow{font-size:clamp(10px,1.3vh,11px)}
+  .kv div{padding:clamp(5px,1vh,10px) 13px}
+  .kv dd{font-size:clamp(12.5px,1.6vh,14px)}
+  .fee{font-size:clamp(12px,1.5vh,13px)}
+  .fee th,.fee td{padding:clamp(3px,.7vh,7px) 10px}
+  .fee caption{padding-top:4px}
+  .obs li{padding:clamp(5px,1vh,11px) 0;font-size:clamp(13px,1.75vh,15px);line-height:1.55}
+  .date-big{font-size:clamp(19px,min(2.4vw,3.5vh),32px)}
+  .pill{font-size:clamp(11.5px,1.5vh,12.5px);padding:clamp(2px,.4vh,4px) 10px}
+  .group{padding:clamp(7px,1.2vh,11px) 13px}
+  .facts.stats div{padding:clamp(6px,1.1vh,10px) 14px}
+  .facts.stats dd{font-size:clamp(17px,2.5vh,22px)}
+  .tilt-card img{max-height:calc(100vh - 200px);object-fit:cover}
+  .jmap{max-height:calc(100vh - 230px)}
+  .bar-wrap{height:clamp(240px,calc(100vh - 340px),500px)}
+  .pav{padding:clamp(9px,1.5vh,16px);gap:clamp(4px,.8vh,8px)}
+  .pav p{font-size:clamp(12px,1.6vh,13px);line-height:1.55}
+  .pav.feature h3{font-size:clamp(22px,min(2.6vw,4.2vh),36px)}
+  .pav.feature p{font-size:clamp(12.5px,1.75vh,14px)}
+  .pav.feature .pav-more{font-size:clamp(12px,1.65vh,13.5px);gap:clamp(2px,.5vh,5px)}
+  .fan{max-height:calc(100vh - 190px);aspect-ratio:5/4;margin-inline:auto;width:min(100%,calc((100vh - 190px)*1.25))}
+  .kv.k4{grid-template-columns:repeat(4,minmax(0,1fr))}
+}
+/* 세로가 짧은 노트북 화면: 상·하단 바와 숫자 칸을 더 촘촘하게 */
+@media (min-width:901px) and (max-height:820px){
+  .topbar{height:50px}
+  .bottombar{height:46px}
+  .navs button{width:32px;height:32px}
+  .facts.stats div{grid-template-columns:auto 1fr;align-items:baseline;column-gap:10px}
+  .facts.stats dt{grid-column:1/-1}
+  .facts.stats span{text-align:right}
+  .area-head{padding-top:0}
+  .area-head h3{font-size:15px}
+  .seg button{padding:4px 12px}
+  .group .v{font-size:17px}
+}
+@media (min-width:901px) and (max-height:680px){
+  .h-lg{font-size:clamp(20px,min(3vw,4.4vh),40px);line-height:1.2}
+  .slide-inner{gap:8px}
+  .copy{gap:6px}
+  .lede{font-size:12.5px;line-height:1.5}
+  .date-big{font-size:clamp(18px,3.2vh,28px)}
+  .pills{gap:4px}
+  .kv div{padding:4px 12px}
+  .facts.stats div{padding:5px 12px}
+  .group{padding:6px 12px;gap:2px}
+}
+@media (max-width:900px){
+  .stage{grid-template-columns:1fr}
+  .rail{display:none}
+  .split,.split.rev,.cover{grid-template-columns:1fr}
+  .split.rev .tilt,.split.rev .map-wrap,.split.rev .chart-panel{order:-1}
+  .slide-inner{align-content:start}
+  .legend-key .hide-sm,.hint{display:none}
+  .fan{aspect-ratio:4/3}
+  .pav-head{grid-template-columns:1fr}
+  .pavs{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .pav.feature{grid-column:span 2;grid-row:auto}
+  .pav-more{max-height:none;opacity:1}
+}
+@media (max-width:480px){
+  .kv,.modes,.pavs{grid-template-columns:1fr}
+  .facts dd{font-size:20px}
+  .group .v{font-size:15px}
+  .pav.feature{grid-column:auto}
+  .pav-more{max-height:none;opacity:1}
+  .brand small{display:none}
+}
+@media (prefers-reduced-motion:reduce){
+  *,*::before,*::after{animation:none!important;transition:none!important}
+}
+</style>
+
+<div class="glow" aria-hidden="true"></div>
+<div class="deck">
+  <header class="topbar">
+    <div class="brand">진주, 등불의 밤 <small>JINJU TRAVEL NOTE</small></div>
+    <div class="legend-key">
+      <span class="hide-sm" style="gap:6px"><i style="width:6px;height:6px;border-radius:50%;background:var(--jade)"></i>공식 누리집 확인(2026.11.16)</span>
+      <span><span class="need">확인 필요</span><span class="hide-sm">자료·누리집에 없는 정보</span></span>
+    </div>
+  </header>
+
+  <div class="stage">
+    <nav class="rail" aria-label="슬라이드 이동"></nav>
+    <main class="slides" id="slides">
+
+      <!-- 1 -->
+      <section class="slide" data-title="표지">
+        <div class="slide-inner cover">
+          <div class="copy">
+            <p class="eyebrow">경상남도 진주시 · 여행 안내</p>
+            <h1 class="h-xl">강 위에 <strong>등불이</strong><br>뜨는 밤, <em><strong>진주</strong></em></h1>
+            <p class="lede">금빛 조명이 켜진 <strong>진주성과 촉석루</strong>, 남강 위를 떠다니는 <strong>유등</strong>, 물 위에 앉은 수달 <strong>하모</strong>까지. 사진 네 장과 진주시 관광 누리집 정보로 진주의 밤을 따라갑니다.</p>
+            <button class="start" data-goto="1">진주 위치부터 보기 <span aria-hidden="true">→</span></button>
+            <p class="note">일정·요금·시간은 진주시 관광 누리집(2026년 11월 16일 확인) 기준입니다. 자료와 누리집 어디에도 없는 정보는 <span class="need">확인 필요</span>로 표시했습니다.</p>
+          </div>
+          <div class="fan" aria-label="진주 사진 세 장">
+            <figure class="tilt"><div class="tilt-card"><img src="img/fortress-night.jpg" alt="금빛 조명이 켜진 강변 성곽과 누각"><div class="glare"></div><figcaption>진주성의 밤</figcaption></div></figure>
+            <figure class="tilt"><div class="tilt-card"><img src="img/hamo-festival.jpg" alt="밤의 남강 위에 앉아 빛나는 흰색 수달 조형물 하모와 색색의 등"><div class="glare"></div><figcaption>남강의 하모</figcaption></div></figure>
+            <figure class="tilt"><div class="tilt-card"><img src="img/jinju-aerial.jpg" alt="강 위에 등불이 떠 있는 진주 시내 항공 사진"><div class="glare"></div><figcaption>남강 위의 유등</figcaption></div></figure>
+          </div>
+        </div>
+      </section>
+
+      <!-- 2 -->
+      <section class="slide" data-title="진주는 어디에">
+        <div class="slide-inner split">
+          <figure class="tilt">
+            <div class="tilt-card"><img src="img/jinju-panorama.jpg" alt="남강이 굽이쳐 흐르는 진주 시내 전경, 강변을 따라 늘어선 아파트와 뒤편의 산"><div class="glare"></div></div>
+            <span class="photo-tag">진주시 전경</span>
+          </figure>
+          <div class="copy">
+            <p class="eyebrow">위치</p>
+            <h2 class="h-lg">서부 경남의 중심,<br><em>남강</em>이 흐르는 도시</h2>
+            <p class="lede">진주시는 <strong>7개 시·군</strong>과 맞닿은 서부 경남의 중심 도시입니다. 남강이 동서로 흐르고, 서쪽에는 경호강과 남강으로 이어지는 <strong>진양호</strong>가 있습니다. 경전선 철도와 남해고속도로가 동서로, 통영대전고속도로가 남북으로 지나갑니다.</p>
+            <div class="compass" aria-label="진주시와 맞닿은 시군">
+              <div class="blank"></div><div>산청군 · 의령군<small>북</small></div><div class="blank"></div>
+              <div>하동군<small>서</small></div><div class="c">진주시</div><div>창원시 · 함안군<small>동</small></div>
+              <div class="blank"></div><div>사천시 · 고성군<small>남</small></div><div class="blank"></div>
+            </div>
+            <p class="src-line">출처: 진주시청 누리집 › 자연환경</p>
+          </div>
+        </div>
+      </section>
+
+      <!-- 3 -->
+      <section class="slide" data-title="진주 가는 길">
+        <div class="slide-inner split rev">
+          <div class="copy">
+            <p class="eyebrow">가는 길</p>
+            <h2 class="h-lg">창원에서 <em>1시간</em>,<br>서울에서 <em>4시간</em> 안팎</h2>
+            <p class="lede">아래 교통수단을 <strong>누르면</strong> 그래프가 그 수단의 수치로 바뀝니다. 막대에 마우스를 올리면 자세한 시간과 요금이 보입니다.</p>
+            <div class="modes" role="group" aria-label="교통수단 선택">
+              <button class="mode" data-mode="train" aria-pressed="false"><strong>기차</strong><span>코레일 진주역 이용</span></button>
+              <button class="mode" data-mode="air" aria-pressed="false"><strong>항공</strong><span>사천공항 (김포 노선)</span></button>
+              <button class="mode" data-mode="bus" aria-pressed="false"><strong>버스</strong><span>시내·시외·고속버스 운행</span></button>
+              <button class="mode" data-mode="car" aria-pressed="true"><strong>렌터카·자가용</strong><span>진주성 주차장 소형 30분 500원</span></button>
+              <button class="mode wide" data-mode="hamo" aria-pressed="false"><strong>하모콜버스</strong><span>티머니GO로 항공·철도·시외·고속버스를 이용한 뒤 24시간 안에 하모콜버스로 갈아타면 마일리지 1,650원이 적립됩니다(무료 이용).</span></button>
+            </div>
+          </div>
+          <div class="chart-panel">
+            <div class="chart-head"><p class="chart-title" id="travelTitle"></p><p class="chart-note" id="travelNote"></p></div>
+            <div class="bar-wrap">
+              <canvas id="travelChart" role="img" aria-label="진주까지 가는 교통수단별 소요 시간 막대 차트"></canvas>
+            </div>
+            <p class="src-line" id="travelSrc"></p>
+          </div>
+        </div>
+      </section>
+
+      <!-- 4 -->
+      <section class="slide" data-title="행정구역 한눈에">
+        <div class="slide-inner split">
+          <div class="map-wrap" id="mapWrap">
+            <svg class="jmap" id="jmap" viewBox="0 0 588 449" role="group" aria-label="진주시 읍면동 지도. 구역에 마우스를 올리면 인구가 보입니다">
+              <g id="jregions">
+              <path style="--i:0" d="M199,70L190,72L183,68L179,68L174,70L171,69L165,73L162,73L161,76L157,80L151,80L149,83L149,88L146,91L143,91L142,94L138,98L127,98L125,100L124,105L125,114L122,120L119,122L110,122L109,150L113,154L113,158L115,160L116,165L122,167L127,172L131,180L130,181L131,186L129,202L133,204L135,207L138,207L140,209L139,212L144,215L149,221L157,220L160,223L165,221L166,213L165,210L169,206L167,199L165,197L169,191L174,191L176,194L182,193L183,186L186,183L190,182L195,186L197,186L203,183L204,178L206,176L211,176L214,171L213,160L215,158L215,151L213,150L213,148L216,145L215,137L217,133L211,123L210,116L208,115L208,112L214,108L214,99L207,85L207,81L201,75L201,71Z" data-n="명석면" data-t="면" data-p="3649" data-h="2094" tabindex="0" aria-label="명석면 인구 3,649명"/>
+              <path style="--i:1" d="M327,25L328,33L320,36L319,47L321,51L321,55L324,58L322,65L325,68L334,72L332,74L333,77L328,84L328,93L323,103L320,103L318,99L315,98L310,103L304,104L304,110L308,116L302,120L301,125L298,128L298,130L291,137L289,137L289,139L295,143L295,146L297,148L296,153L300,156L300,158L304,160L304,163L309,164L312,167L312,169L319,167L326,169L330,165L335,162L339,162L342,159L345,163L343,167L347,166L352,169L353,183L359,192L369,195L376,193L388,194L400,206L404,207L412,206L413,200L420,189L424,186L424,183L426,180L426,176L422,167L418,165L407,166L398,160L398,153L395,151L394,147L395,132L391,132L390,138L388,140L388,145L384,148L378,145L375,146L372,143L372,141L376,137L376,132L370,127L368,120L356,109L355,107L356,100L350,89L350,85L353,81L353,77L350,74L349,56L354,52L354,44L352,40L343,32L342,27L335,27L333,25Z" data-n="대곡면" data-t="면" data-p="3015" data-h="1655" tabindex="0" aria-label="대곡면 인구 3,015명"/>
+              <path style="--i:2" d="M329,4L324,4L322,6L319,6L307,18L303,18L303,21L290,32L273,34L264,27L252,27L246,24L235,24L232,25L228,29L224,30L215,29L213,34L207,40L206,59L212,64L211,67L214,67L216,70L231,70L235,67L239,69L245,75L247,80L248,89L247,97L253,108L253,112L257,115L260,115L265,121L264,124L268,130L273,129L283,136L292,135L296,131L296,129L299,127L301,120L305,116L302,105L305,102L310,102L315,97L317,97L320,102L324,101L327,93L326,85L331,78L331,72L325,69L321,65L322,57L320,55L320,51L317,46L319,43L318,37L321,34L326,33L326,25L328,23L334,24L337,22L339,16L330,9Z" data-n="미천면" data-t="면" data-p="1454" data-h="910" tabindex="0" aria-label="미천면 인구 1,454명"/>
+              <path style="--i:3" d="M206,61L200,66L200,70L203,72L203,76L208,81L209,87L215,99L215,108L211,112L209,112L209,114L212,116L211,118L212,123L218,133L217,145L214,148L214,150L217,152L217,155L214,160L215,171L210,178L206,177L206,180L204,183L197,187L198,196L201,196L205,202L213,201L217,209L222,213L222,215L224,215L226,204L223,193L220,191L222,189L227,189L227,186L230,183L237,183L241,185L240,182L244,177L246,177L248,179L254,179L259,184L262,184L264,186L264,192L266,194L272,194L276,196L282,203L291,201L295,195L297,175L299,173L302,173L305,169L310,168L310,166L307,164L304,164L303,160L298,158L298,155L295,153L295,147L293,142L289,140L287,137L283,137L279,135L275,131L270,132L268,131L263,124L262,118L260,116L255,115L252,112L252,108L246,97L245,87L246,80L243,74L237,69L233,69L231,71L215,71L214,69L211,69L209,67L210,63Z" data-n="집현면" data-t="면" data-p="4255" data-h="2177" tabindex="0" aria-label="집현면 인구 4,255명"/>
+              <path style="--i:4" d="M45,151L35,161L36,164L35,175L33,177L32,184L27,190L24,191L18,185L15,184L8,184L6,186L7,189L4,199L15,216L15,219L12,222L12,227L18,234L21,234L23,236L24,241L28,246L38,248L41,252L50,253L55,258L55,263L60,263L68,272L68,275L65,279L65,290L67,295L69,295L71,292L73,293L80,292L85,286L89,284L93,285L96,288L96,290L98,290L100,287L100,280L96,277L96,274L93,269L93,264L90,264L88,262L90,259L93,259L93,254L90,251L92,243L88,238L89,232L85,229L83,225L83,216L78,208L76,201L77,194L80,191L79,185L77,183L78,162L74,161L71,157L69,157L64,152Z" data-n="수곡면" data-t="면" data-p="2128" data-h="1209" tabindex="0" aria-label="수곡면 인구 2,128명"/>
+              <path style="--i:5" d="M570,217L548,216L545,218L544,217L538,218L537,229L535,231L525,229L526,240L529,246L527,249L528,254L525,256L525,259L521,263L519,262L519,260L513,261L514,275L510,278L508,276L505,276L502,280L495,280L494,287L496,289L496,292L500,292L501,297L508,298L508,311L505,315L505,319L509,335L514,336L521,329L531,330L535,333L535,335L540,337L548,334L558,333L558,331L563,325L573,318L575,314L577,314L576,308L573,304L578,300L576,295L578,288L575,285L574,281L577,278L577,273L580,270L581,261L580,258L582,255L582,244L584,240L575,230L573,225L573,220Z" data-n="이반성면" data-t="면" data-p="1533" data-h="928" tabindex="0" aria-label="이반성면 인구 1,533명"/>
+              <path style="--i:6" d="M315,236L314,245L316,249L326,250L328,252L330,264L333,266L330,269L323,267L316,273L312,274L310,278L300,279L297,282L298,286L297,294L301,297L301,302L299,304L299,307L302,311L306,311L332,324L336,324L342,320L343,316L352,308L355,308L358,304L363,308L362,318L368,319L370,321L372,321L375,318L382,317L385,313L389,314L391,310L398,310L400,314L406,316L410,322L414,322L418,326L420,326L432,335L436,335L435,325L428,320L426,320L424,316L421,316L415,310L415,304L407,298L407,293L399,288L400,281L399,266L395,266L393,262L390,262L386,259L386,255L383,253L383,244L380,239L378,238L373,239L371,235L368,232L366,232L364,237L359,239L351,245L349,252L346,251L344,247L336,248L334,246L325,245L322,236L319,236L318,239L317,236Z" data-n="문산읍" data-t="읍" data-p="7706" data-h="3546" tabindex="0" aria-label="문산읍 인구 7,706명"/>
+              <path style="--i:7" d="M108,156L106,160L100,158L97,161L95,161L95,163L92,166L87,166L83,168L83,175L79,177L78,183L81,189L81,191L78,194L78,205L79,208L82,210L82,213L84,216L84,225L87,228L87,230L90,232L89,238L93,243L91,251L94,254L94,259L90,261L90,263L94,264L94,269L98,275L98,278L101,280L101,284L103,286L110,286L112,283L116,282L119,288L122,288L124,290L131,290L135,287L142,285L145,282L138,268L139,262L137,260L139,258L138,252L144,248L149,249L151,247L157,247L160,244L162,244L164,248L171,254L173,254L173,245L171,243L171,238L164,234L165,229L163,224L160,224L157,221L149,222L144,216L138,212L138,208L135,208L133,205L131,205L127,201L129,196L128,191L129,190L129,179L126,172L122,168L117,167L112,157Z" data-n="대평면" data-t="면" data-p="1009" data-h="564" tabindex="0" aria-label="대평면 인구 1,009명"/>
+              <path style="--i:8" d="M357,306L354,310L351,310L344,316L343,320L338,323L334,329L335,335L334,339L336,341L336,351L333,354L333,356L328,360L328,365L331,368L332,373L336,374L339,379L345,379L347,381L345,384L346,388L343,392L343,396L334,405L330,402L327,402L325,404L321,404L319,410L323,413L324,418L327,423L334,424L337,423L340,426L340,429L342,431L342,436L348,444L357,442L360,445L362,445L370,438L373,432L372,429L384,416L387,414L391,414L390,411L383,409L380,410L378,408L370,409L364,404L367,379L369,377L373,377L376,380L380,379L381,374L378,366L385,362L385,359L389,355L391,355L393,351L412,352L414,351L416,347L422,347L425,344L430,343L431,335L420,327L418,327L414,323L410,323L406,319L406,317L402,317L398,311L391,311L389,315L384,315L382,319L375,319L372,323L368,320L365,321L360,317L362,314L361,311L362,308L360,306Z" data-n="금곡면" data-t="면" data-p="2114" data-h="1205" tabindex="0" aria-label="금곡면 인구 2,114명"/>
+              <path style="--i:9" d="M372,200L371,209L374,213L375,218L373,220L369,219L367,221L365,231L368,231L373,236L373,238L376,237L380,238L383,241L384,253L387,255L387,259L390,261L393,261L396,265L399,265L401,267L400,272L402,276L400,282L400,288L408,293L408,298L417,305L416,310L421,315L424,315L426,319L428,319L436,325L437,332L442,333L450,332L454,330L459,334L461,334L463,329L461,317L456,314L450,305L457,301L464,307L471,307L471,304L468,304L466,302L464,291L458,286L455,281L456,279L455,273L450,269L447,269L444,266L446,264L446,257L444,252L446,247L446,239L443,237L432,238L426,236L423,233L420,224L416,225L411,222L410,218L411,208L401,208L390,196L382,195Z" data-n="진성면" data-t="면" data-p="1774" data-h="985" tabindex="0" aria-label="진성면 인구 1,774명"/>
+              <path style="--i:10" d="M414,200L415,203L412,207L411,212L412,215L411,218L413,222L420,223L426,235L432,237L443,236L447,239L447,247L445,250L447,257L447,263L451,261L455,263L473,263L477,261L483,255L488,256L488,253L494,246L498,246L505,250L515,251L520,261L522,261L523,257L527,254L526,251L527,244L524,239L525,238L524,229L526,227L531,230L536,229L535,223L536,218L534,216L534,213L528,207L526,197L508,196L507,200L504,203L500,204L500,206L503,209L504,214L502,218L500,218L497,214L490,211L486,201L483,200L474,201L472,207L470,208L463,207L460,211L461,217L454,224L451,224L448,221L445,208L439,204L439,201L435,200L432,197L430,190L428,190L426,187L423,187Z" data-n="사봉면" data-t="면" data-p="1650" data-h="825" tabindex="0" aria-label="사봉면 인구 1,650명"/>
+              <path style="--i:11" d="M139,340L141,342L141,346L143,349L150,349L158,343L167,344L168,341L172,338L183,340L194,339L196,336L195,330L199,326L208,327L214,322L215,319L222,319L227,315L228,316L238,314L243,315L254,307L254,301L253,299L249,299L247,302L241,298L242,287L239,284L233,283L222,284L220,282L220,276L214,278L212,282L201,287L191,285L187,286L182,283L182,280L179,277L179,272L175,272L173,275L169,276L167,288L163,293L159,292L156,289L152,290L150,286L144,284L144,286L140,291L139,294L140,302L138,304L135,304L135,307L141,313L141,318L144,323L143,332Z" data-n="내동면" data-t="면" data-p="3920" data-h="1644" tabindex="0" aria-label="내동면 인구 3,920명"/>
+              <path style="--i:12" d="M399,140L400,161L407,165L418,164L423,167L428,177L425,185L427,188L431,190L433,197L439,200L447,209L450,222L455,222L459,218L458,212L463,206L466,205L470,207L472,206L472,202L479,198L486,200L489,204L491,211L496,212L500,217L502,217L502,209L499,206L499,204L506,200L510,191L511,184L507,176L503,173L500,173L493,166L494,161L498,159L499,154L495,149L489,152L481,146L473,145L468,147L448,147L446,149L426,149L424,151L420,148L416,149L413,146L413,144L409,145L402,139Z" data-n="지수면" data-t="면" data-p="1399" data-h="804" tabindex="0" aria-label="지수면 인구 1,399명"/>
+              <path style="--i:13" d="M298,175L296,195L292,200L292,203L297,211L298,229L301,231L310,231L317,235L321,234L324,238L325,244L329,243L335,246L338,245L344,246L346,250L349,250L349,247L353,242L355,242L360,237L364,236L365,234L364,227L366,221L369,218L373,217L373,213L370,209L369,202L372,199L376,198L378,194L369,196L359,193L353,186L352,173L350,171L350,168L345,169L342,167L343,161L339,163L335,163L324,171L322,169L315,169L310,171L305,171L301,175Z" data-n="금산면" data-t="면" data-p="19455" data-h="7931" tabindex="0" aria-label="금산면 인구 19,455명"/>
+              <path style="--i:14" d="M209,327L209,329L214,328L215,329L219,328L225,329L231,334L233,338L236,338L239,341L243,341L248,345L248,348L251,352L250,356L251,362L249,364L250,369L252,369L253,366L259,361L271,362L282,353L285,353L287,350L294,350L296,348L297,349L300,349L302,347L303,348L315,348L327,357L331,357L331,355L335,351L335,341L333,339L333,329L335,325L332,325L326,321L322,321L306,312L302,312L299,308L291,312L288,307L284,308L277,306L275,304L272,304L272,309L270,311L262,312L257,308L254,308L249,313L243,316L231,316L225,317L221,321L217,320Z" data-n="정촌면" data-t="면" data-p="9350" data-h="4031" tabindex="0" aria-label="정촌면 인구 9,350명"/>
+              <path style="--i:15" d="M447,264L446,267L450,268L457,274L458,277L457,282L459,286L462,287L466,291L467,302L470,302L470,298L471,297L472,298L472,307L470,309L468,308L464,309L459,303L452,305L452,307L456,310L457,314L462,317L464,326L473,326L477,328L494,328L502,335L506,335L507,328L504,323L503,316L507,308L507,299L501,298L499,294L494,291L494,288L492,285L495,279L502,279L505,275L509,276L513,275L512,261L515,258L517,258L516,253L512,251L505,251L500,248L493,248L489,253L488,258L481,257L477,263Z" data-n="일반성면" data-t="면" data-p="2376" data-h="1297" tabindex="0" aria-label="일반성면 인구 2,376명"/>
+              <path style="--i:16" d="M200,203L196,203L196,208L199,211L198,214L196,213L194,209L190,209L190,215L187,217L186,216L187,211L184,211L178,214L169,214L166,216L166,221L164,224L166,229L166,234L168,234L173,239L172,243L174,245L175,257L181,258L185,256L187,258L188,261L186,263L186,267L188,271L183,276L181,276L181,278L184,281L184,284L189,284L191,278L201,269L201,264L196,263L194,261L193,254L196,251L206,252L208,249L214,247L214,243L217,240L220,240L222,242L227,240L224,230L221,231L219,229L216,229L213,224L212,216L217,212L217,210L213,209L211,211L204,211L201,208Z" data-n="이현동" data-t="동" data-p="9640" data-h="4641" tabindex="0" aria-label="이현동 인구 9,640명"/>
+              <path style="--i:17" d="M245,273L243,276L244,280L241,283L241,286L243,287L243,299L248,300L249,298L253,298L256,302L255,306L262,311L270,310L272,303L275,303L280,306L289,305L291,311L295,310L295,307L300,302L300,297L295,295L296,289L293,285L293,279L289,273L286,273L283,275L277,275L273,272L269,272L267,269L262,270L259,275L253,272Z" data-n="가호동" data-t="동" data-p="38565" data-h="19646" tabindex="0" aria-label="가호동 인구 38,565명"/>
+              <path style="--i:18" d="M252,208L252,212L246,220L247,225L251,225L254,223L260,224L262,231L270,229L274,230L276,232L276,239L280,239L289,244L295,244L297,248L302,248L305,246L308,250L314,249L314,246L312,244L314,235L310,232L301,232L297,229L296,211L290,202L285,204L282,204L281,202L279,202L279,205L282,206L287,213L285,219L277,218L274,215L275,211L272,207L265,206L263,210L264,213L261,215L258,207Z" data-n="하대동" data-t="동" data-p="22249" data-h="11130" tabindex="0" aria-label="하대동 인구 22,249명"/>
+              <path style="--i:19" d="M160,245L155,249L154,248L151,248L149,250L144,249L142,252L139,252L140,256L139,268L146,280L146,283L150,285L151,288L156,288L159,291L163,292L166,288L167,279L170,274L173,274L176,270L179,271L181,275L183,275L187,271L187,269L184,266L186,262L185,257L181,259L175,259L173,255L171,255L162,247L162,245Z" data-n="판문동" data-t="동" data-p="19678" data-h="8160" tabindex="0" aria-label="판문동 인구 19,678명"/>
+              <path style="--i:20" d="M228,186L228,188L234,192L235,198L237,199L237,202L239,203L241,207L240,210L244,214L244,218L247,218L251,212L251,208L255,205L260,208L262,208L265,205L271,205L276,211L276,216L284,217L285,211L282,207L280,207L277,204L278,199L272,195L266,195L263,192L263,186L259,185L256,181L248,180L244,178L242,180L242,186L240,188L237,184L230,184Z" data-n="초장동" data-t="동" data-p="27352" data-h="10346" tabindex="0" aria-label="초장동 인구 27,352명"/>
+              <path style="--i:21" d="M260,226L254,224L248,227L246,223L240,221L240,225L238,227L234,226L232,228L228,226L225,228L225,233L228,238L228,242L234,243L236,245L233,252L227,257L227,265L234,265L237,259L239,261L239,265L246,265L248,253L250,251L256,250L255,247L258,241L262,237Z" data-n="성북동" data-t="동" data-p="9320" data-h="5702" tabindex="0" aria-label="성북동 인구 9,320명"/>
+              <path style="--i:22" d="M259,241L258,247L263,254L263,258L265,258L271,266L273,266L274,262L279,257L297,256L296,246L287,245L285,243L282,243L280,240L276,240L274,237L275,235L274,231L266,231L264,233L264,236Z" data-n="상대동" data-t="동" data-p="18221" data-h="9781" tabindex="0" aria-label="상대동 인구 18,221명"/>
+              <path style="--i:23" d="M167,196L170,206L167,209L168,213L182,212L184,210L189,210L191,207L195,207L193,203L195,201L200,202L203,205L202,208L204,210L211,210L214,208L214,203L205,203L201,197L197,196L195,193L196,189L192,184L185,185L183,195L179,194L176,197L174,192L169,192Z" data-n="상봉동" data-t="동" data-p="12292" data-h="7093" tabindex="0" aria-label="상봉동 인구 12,292명"/>
+              <path style="--i:24" d="M269,264L265,259L261,257L261,253L259,252L259,249L257,249L255,252L249,253L248,262L246,266L240,267L238,265L238,261L236,261L236,264L234,266L224,266L225,272L221,276L221,282L229,283L229,280L227,277L229,272L233,282L240,283L242,281L242,276L247,270L253,271L255,273L259,273L263,268L266,267L269,268Z" data-n="천전동" data-t="동" data-p="26671" data-h="14172" tabindex="0" aria-label="천전동 인구 26,671명"/>
+              <path style="--i:25" d="M299,250L298,265L303,271L302,272L303,275L310,275L319,270L323,265L328,268L331,267L331,265L328,263L326,252L322,250L311,252L308,251L306,248Z" data-n="충무공동" data-t="동" data-p="33781" data-h="12918" tabindex="0" aria-label="충무공동 인구 33,781명"/>
+              <path style="--i:26" d="M226,190L222,190L222,192L224,193L226,203L230,206L226,208L226,213L223,218L220,212L218,212L213,216L215,226L220,229L228,225L231,226L239,225L239,221L243,219L243,214L239,210L238,203L235,201L233,197L233,192Z" data-n="중앙동" data-t="동" data-p="9824" data-h="5951" tabindex="0" aria-label="중앙동 인구 9,824명"/>
+              <path style="--i:27" d="M234,245L229,244L227,242L223,244L220,241L217,241L215,243L216,246L208,250L206,253L196,252L194,254L195,261L202,263L207,267L209,267L218,258L226,260L227,255L232,252Z" data-n="신안동" data-t="동" data-p="10722" data-h="5405" tabindex="0" aria-label="신안동 인구 10,722명"/>
+              <path style="--i:28" d="M222,260L215,261L208,269L205,266L202,266L202,269L198,274L192,278L191,284L201,286L212,281L214,276L223,274L224,265Z" data-n="평거동" data-t="동" data-p="24870" data-h="11455" tabindex="0" aria-label="평거동 인구 24,870명"/>
+              <path style="--i:29" d="M275,262L273,271L277,274L283,274L288,271L295,281L297,281L300,278L304,278L304,276L301,274L301,270L299,266L296,264L297,263L296,257L287,259L282,257L279,258Z" data-n="상평동" data-t="동" data-p="10863" data-h="5332" tabindex="0" aria-label="상평동 인구 10,863명"/>
+              </g>
+              <path id="jhi" class="jhi" d=""/>
+              <g aria-hidden="true">
+              <text x="283" y="72">미천면</text>
+              <text x="333" y="131">대곡면</text>
+              <text x="245" y="148">집현면</text>
+              <text x="164" y="140">명석면</text>
+              <text x="49" y="219">수곡면</text>
+              <text x="117" y="229">대평면</text>
+              <text x="458" y="177">지수면</text>
+              <text x="478" y="230">사봉면</text>
+              <text x="327" y="203">금산면</text>
+              <text x="433" y="287">진성면</text>
+              <text x="488" y="310">일반성면</text>
+              <text x="541" y="294">이반성면</text>
+              <text x="363" y="276">문산읍</text>
+              <text x="362" y="346">금곡면</text>
+              <text x="268" y="335">정촌면</text>
+              <text x="176" y="313">내동면</text>
+              <text x="197" y="232" class="dong">이현동</text>
+              <text x="156" y="265" class="dong">판문동</text>
+              <text x="245" y="238" class="dong">성북동</text>
+              <text x="251" y="194" class="dong">초장동</text>
+              <text x="267" y="289" class="dong">가호동</text>
+              </g>
+            </svg>
+            <div class="map-tip" id="mapTip" role="status" aria-live="polite"></div>
+            <div class="map-legend" id="mapLegend"></div>
+          </div>
+          <div class="copy">
+            <p class="eyebrow">숫자로 보는 진주</p>
+            <h2 class="h-lg">14개 동에 <em>시민 10명 중 8명</em>,<br>1읍 · 15면 · 14동</h2>
+            <p class="lede">동은 남강을 끼고 도심에 모여 있고, 면은 그 바깥을 넓게 둘러쌉니다. 지도의 <strong>구역에 마우스를 올리면</strong> 그곳의 인구가 보입니다.</p>
+            <dl class="facts stats">
+              <div><dt>면적</dt><dd>712.94<small>㎢</small></dd><span>경남의 6.8%</span></div>
+              <div><dt>인구</dt><dd>340,835<small>명</small></dd><span>2026.10.31 기준</span></div>
+              <div><dt>크기</dt><dd>43.7 × 33.2<small>㎞</small></dd><span>동서 × 남북</span></div>
+              <div><dt>기후</dt><dd>13.5<small>℃</small></dd><span>연평균 · 강수 1,493㎜</span></div>
+            </dl>
+            <div class="area-head">
+              <h3>읍 · 면 · 동</h3>
+              <div class="seg" role="group" aria-label="지도 기준 선택">
+                <button id="mode-pop" aria-pressed="true">인구</button><button id="mode-cnt" aria-pressed="false">구역 수</button>
+              </div>
+            </div>
+            <div class="groups" id="groups"></div>
+            <p class="src-line">출처: 진주시청 누리집 › 자연환경 · 2026년 10월 주민등록 인구 현황 · 경계는 진주시 행정구역 지도(© doopedia)를 따라 그렸고, 도심 동 경계는 근사치입니다</p>
+          </div>
+        </div>
+      </section>
+
+      <!-- 5 -->
+      <section class="slide" data-title="관광캐릭터 하모">
+        <div class="slide-inner split rev">
+          <div class="copy">
+            <p class="eyebrow">진주 관광캐릭터</p>
+            <h2 class="h-lg">“그럼, 좋아!”<br>진주 수달 <em>하모</em></h2>
+            <p class="lede">진양호와 남강에 사는 <strong>천연기념물 수달</strong>을 모티브로 한 진주시 관광캐릭터입니다. 이름 ‘하모’는 동의와 긍정을 뜻하는 진주 방언으로, 고민 있는 사람들에게 희망을 전하고 용기를 북돋아 주는 캐릭터입니다.</p>
+            <ul class="obs" data-obs>
+              <li data-i="1"><b>01</b><span>머리 위의 <strong>조개</strong>는 도시 이름 ‘진주’를 상징합니다.</span></li>
+              <li data-i="2"><b>02</b><span>남강은 진주 시내를 동서로 가로질러 흐르는 강으로, 하모의 모티브인 수달이 사는 곳입니다.</span></li>
+              <li data-i="3"><b>03</b><span>목에 건 <strong>진주 목걸이</strong>도 조개와 함께 ‘진주’를 나타냅니다.</span></li>
+              <li data-i="4"><b>04</b><span>꼬리의 <strong>파도 무늬</strong>는 진주를 대표하는 ‘물’과 깨끗한 이미지를 담았습니다.</span></li>
+            </ul>
+            <dl class="kv">
+              <div><dt>탄생</dt><dd>2021년 2월 · 전국 캐릭터 공모전 최우수작</dd></div>
+              <div><dt>SNS</dt><dd>인스타그램 @hamo_in_jinju · 유튜브</dd></div>
+            </dl>
+            <div class="pills" aria-label="하모 굿즈">
+              <span class="pill">인형</span><span class="pill">쿠션</span><span class="pill">달력</span><span class="pill">돗자리</span><span class="pill">마카롱</span><span class="pill">초콜릿</span>
+            </div>
+            <p class="src-line">출처: 진주시청 누리집 › 관광캐릭터 (모티브·디자인·이름 뜻, 문의 관광진흥과 055-749-5321) · 경남도민일보 2021.7.28 (공모전) · 양산신문 2025.7.21 (SNS·굿즈)</p>
+          </div>
+          <figure class="tilt">
+            <div class="tilt-card">
+              <img src="img/hamo-festival.jpg" alt="밤의 남강 위 받침에 앉아 빛나는 흰색 수달 조형물 하모, 머리 위 조개와 목의 진주 목걸이, 뒤편 강가의 성곽 조명과 색색의 등">
+              <div class="glare"></div>
+              <div class="spot" style="--x:32%;--y:25%"><button aria-label="지점 1" data-hl="1">1</button><span class="tip">머리 위의 조개</span></div>
+              <div class="spot" style="--x:72%;--y:86%"><button aria-label="지점 2" data-hl="2">2</button><span class="tip">진주 도심을 가로지르는 남강</span></div>
+              <div class="spot" style="--x:38%;--y:52%"><button aria-label="지점 3" data-hl="3">3</button><span class="tip">목에 건 진주 목걸이</span></div>
+              <div class="spot" style="--x:43%;--y:71%"><button aria-label="지점 4" data-hl="4">4</button><span class="tip">파도 무늬 꼬리</span></div>
+            </div>
+            <span class="photo-tag">남강 하모 수상 조형물</span>
+          </figure>
+        </div>
+      </section>
+
+      <!-- 6 -->
+      <section class="slide" data-title="진주성의 밤">
+        <div class="slide-inner split">
+          <figure class="tilt">
+            <div class="tilt-card">
+              <img src="img/fortress-night.jpg" alt="금빛 조명이 켜진 남강변 진주성, 왼쪽 언덕 위의 촉석루와 오른쪽 성벽 위의 촉석문, 강물에 비친 불빛">
+              <div class="glare"></div>
+              <div class="spot" style="--x:17%;--y:43%"><button aria-label="지점 1" data-hl="1">1</button><span class="tip">남강 벼랑 위의 누각, 촉석루</span></div>
+              <div class="spot right" style="--x:70%;--y:40%"><button aria-label="지점 2" data-hl="2">2</button><span class="tip">진주성의 동문, 촉석문</span></div>
+              <div class="spot" style="--x:50%;--y:62%"><button aria-label="지점 3" data-hl="3">3</button><span class="tip">남강변 벼랑 위로 이어진 석성</span></div>
+              <div class="spot" style="--x:30%;--y:86%"><button aria-label="지점 4" data-hl="4">4</button><span class="tip">남강에 비친 성곽 조명</span></div>
+            </div>
+          </figure>
+          <div class="copy">
+            <p class="eyebrow">장면 01 · 진주성 · 사적 제118호</p>
+            <h2 class="h-lg">밤 늦게까지 문을 여는<br><em>남강 벼랑 위의 성</em></h2>
+            <p class="lede">둘레 <strong>1,760m</strong>의 석성으로, 고려 우왕 5년(1379)에 토성을 석성으로 고쳐 쌓았습니다. 성 안의 <strong>촉석루</strong>는 1241년에 처음 지은 누각으로 진주 8경 중 제1경입니다. 임진왜란 3대첩 가운데 하나인 진주대첩이 벌어진 곳이기도 합니다.</p>
+            <dl class="kv">
+              <div><dt>개방 · 3~10월</dt><dd>05:00 – 23:00</dd></div>
+              <div><dt>개방 · 11~2월</dt><dd>05:00 – 22:00</dd></div>
+              <div><dt>유료 관람 시간</dt><dd>09:00 – 18:00</dd></div>
+              <div><dt>해설 (사전 예약)</dt><dd>055-749-7449</dd></div>
+            </dl>
+            <table class="fee">
+              <thead><tr><th>관람료</th><th>개인</th><th>단체 30명+</th></tr></thead>
+              <tbody>
+                <tr><td>어른 (20~64세)</td><td>2,000원</td><td>1,400원</td></tr>
+                <tr><td>청소년 (13~19세) · 군인</td><td>1,000원</td><td>600원</td></tr>
+                <tr><td>어린이 (7~12세)</td><td>600원</td><td>400원</td></tr>
+              </tbody>
+              <caption>진주시민·6세 이하·65세 이상·한복 착용자 등은 무료입니다. 반려동물은 들어갈 수 없습니다.</caption>
+            </table>
+            <p class="src-line">출처: 진주시 관광 누리집 › 진주성 안내 · 문의 055-749-5171</p>
+          </div>
+        </div>
+      </section>
+
+      <!-- 7 -->
+      <section class="slide" data-title="진주남강유등축제">
+        <div class="slide-inner split rev">
+          <div class="copy">
+            <p class="eyebrow">장면 02 · 진주남강유등축제</p>
+            <h2 class="h-lg">남강 위에 <em>등을 띄우는</em><br>열엿새의 가을밤</h2>
+            <p class="lede">5년 연속 <strong>대한민국 글로벌 육성 축제</strong>로 선정된 진주의 대표 축제입니다. 진주성이 있는 본성동 남강 일대에서 열립니다.</p>
+            <div class="date-big">2026. 10. 3.(토) – 10. 18.(일)<small>주제 “역사의 강, 평화를 담다” · 2026년 축제는 끝났고, 2027년 일정은 <span class="need">확인 필요</span></small></div>
+            <dl class="kv k4">
+              <div><dt>유등 점등 시간</dt><dd>18:00 – 24:00</dd></div>
+              <div><dt>부교 · 부스 운영</dt><dd>13:00 – 23:00</dd></div>
+              <div><dt>장소</dt><dd>진주성, 진주남강 일원</dd></div>
+              <div><dt>이용료</dt><dd>무료</dd></div>
+              <div class="wide"><dt>주최 · 주관</dt><dd>진주시·진주문화예술재단 · 진주남강유등축제 제전위원회</dd></div>
+              <div class="wide"><dt>주차</dt><dd>진주종합경기장·진주역·혁신도시 등 임시주차장과 셔틀버스 운영(2026년 기준)</dd></div>
+            </dl>
+            <div class="pills" aria-label="주요 프로그램">
+              <span class="pill">드론라이트쇼</span><span class="pill">유등 만들어 띄우기</span><span class="pill">소망등 달기</span>
+              <span class="pill">사랑다리 건너기(부교)</span><span class="pill">유람선 등 관람</span><span class="pill">멀티파이어 불꽃놀이</span>
+              <span class="pill">망진산 철탑레이저쇼</span><span class="pill">등 공모대전 전시</span>
+            </div>
+            <p class="src-line">출처: 진주남강유등축제 공식 누리집 <a href="https://yudeung.com/" target="_blank" rel="noopener">yudeung.com</a> (일정·시간·주최) · 진주시 관광 누리집 (이용료·프로그램) · 문의 055-761-9111</p>
+          </div>
+          <figure class="tilt">
+            <div class="tilt-card">
+              <img src="img/jinju-aerial.jpg" alt="유등이 떠 있는 남강과 천수교, 소망진산 유등테마공원, 멀리 진주성이 보이는 야간 항공 사진">
+              <div class="glare"></div>
+              <div class="spot" style="--x:24%;--y:39%"><button aria-label="지점 1" data-hl="1">1</button><span class="tip">남강을 가로지르는 천수교</span></div>
+              <div class="spot" style="--x:17%;--y:68%"><button aria-label="지점 2" data-hl="2">2</button><span class="tip">남강 위에 띄운 유등</span></div>
+              <div class="spot right" style="--x:63%;--y:57%"><button aria-label="지점 3" data-hl="3">3</button><span class="tip">소망진산 유등테마공원</span></div>
+              <div class="spot right" style="--x:78%;--y:84%"><button aria-label="지점 4" data-hl="4">4</button><span class="tip">언덕을 따라 이어진 산책로</span></div>
+              <div class="spot" style="--x:36%;--y:17%"><button aria-label="지점 5" data-hl="5">5</button><span class="tip">조명이 켜진 진주성</span></div>
+            </div>
+          </figure>
+        </div>
+      </section>
+
+    </main>
+  </div>
+
+  <footer class="bottombar">
+    <div class="counter"><strong id="cur">01</strong> / <span id="tot">09</span> · <span id="curTitle">표지</span></div>
+    <div class="hint">← → 키, 휠, 스와이프로 넘기기 · 사진 위에 마우스를 대 보세요</div>
+    <div class="navs"><button id="prev" aria-label="이전 슬라이드">←</button><button id="next" aria-label="다음 슬라이드">→</button></div>
+  </footer>
+  <div class="progress" id="progress"></div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<script>
+(function(){
+  const slides=[...document.querySelectorAll('.slide')];
+  const rail=document.querySelector('.rail');
+  const cur=document.getElementById('cur'),tot=document.getElementById('tot'),curTitle=document.getElementById('curTitle');
+  const prev=document.getElementById('prev'),next=document.getElementById('next'),progress=document.getElementById('progress');
+  const pad=n=>String(n).padStart(2,'0');
+  let index=0;
+  tot.textContent=pad(slides.length);
+  slides.forEach((s,i)=>{
+    const b=document.createElement('button');
+    b.textContent=pad(i+1);b.setAttribute('aria-label',(i+1)+'장 '+s.dataset.title);b.title=s.dataset.title;
+    b.addEventListener('click',()=>go(i));rail.appendChild(b);
+  });
+  function go(i){
+    i=Math.max(0,Math.min(slides.length-1,i));
+    slides.forEach((s,k)=>s.classList.toggle('active',k===i));
+    [...rail.children].forEach((b,k)=>b.setAttribute('aria-current',k===i?'true':'false'));
+    index=i;cur.textContent=pad(i+1);curTitle.textContent=slides[i].dataset.title;
+    prev.disabled=i===0;next.disabled=i===slides.length-1;
+    progress.style.width=((i+1)/slides.length*100)+'%';
+    slides[i].scrollTop=0;
+    try{history.replaceState(null,'','#'+(i+1))}catch(e){}
+    if(slides[i].querySelector('#travelChart'))drawTravel();
+  }
+  prev.addEventListener('click',()=>go(index-1));
+  next.addEventListener('click',()=>go(index+1));
+  document.querySelectorAll('[data-goto]').forEach(b=>b.addEventListener('click',()=>go(+b.dataset.goto)));
+  document.addEventListener('keydown',e=>{
+    if(e.key==='ArrowRight'||e.key==='PageDown'){e.preventDefault();go(index+1)}
+    if(e.key==='ArrowLeft'||e.key==='PageUp'){e.preventDefault();go(index-1)}
+    if(e.key==='Home')go(0);if(e.key==='End')go(slides.length-1);
+  });
+  let wheelLock=0;
+  document.getElementById('slides').addEventListener('wheel',e=>{
+    const s=slides[index];
+    const atTop=s.scrollTop<=0,atBottom=s.scrollTop+s.clientHeight>=s.scrollHeight-2;
+    if(Math.abs(e.deltaY)<30)return;
+    if((e.deltaY>0&&!atBottom)||(e.deltaY<0&&!atTop))return;
+    const now=Date.now();if(now-wheelLock<900)return;wheelLock=now;
+    go(index+(e.deltaY>0?1:-1));
+  },{passive:true});
+  let tx=0,ty=0;
+  document.addEventListener('touchstart',e=>{tx=e.touches[0].clientX;ty=e.touches[0].clientY},{passive:true});
+  document.addEventListener('touchend',e=>{
+    const dx=e.changedTouches[0].clientX-tx,dy=e.changedTouches[0].clientY-ty;
+    if(Math.abs(dx)>60&&Math.abs(dx)>Math.abs(dy)*1.5)go(index+(dx<0?1:-1));
+  },{passive:true});
+
+  /* cursor lantern glow */
+  const glow=document.querySelector('.glow');
+  document.addEventListener('pointermove',e=>{
+    glow.style.setProperty('--gx',e.clientX+'px');glow.style.setProperty('--gy',e.clientY+'px');
+  });
+
+  /* 3D tilt + parallax + glare */
+  const reduce=matchMedia('(prefers-reduced-motion: reduce)').matches;
+  document.querySelectorAll('.tilt').forEach(t=>{
+    const card=t.querySelector('.tilt-card');
+    t.addEventListener('pointermove',e=>{
+      if(reduce||e.pointerType==='touch')return;
+      const r=card.getBoundingClientRect();
+      const x=(e.clientX-r.left)/r.width,y=(e.clientY-r.top)/r.height;
+      t.classList.add('is-active');
+      card.style.setProperty('--ry',((x-.5)*12)+'deg');
+      card.style.setProperty('--rx',((.5-y)*10)+'deg');
+      card.style.setProperty('--px',((.5-x)*14)+'px');
+      card.style.setProperty('--py',((.5-y)*14)+'px');
+      card.style.setProperty('--mx',(x*100)+'%');
+      card.style.setProperty('--my',(y*100)+'%');
+    });
+    t.addEventListener('pointerleave',()=>{
+      t.classList.remove('is-active');
+      ['--ry','--rx','--px','--py'].forEach(p=>card.style.removeProperty(p));
+    });
+  });
+
+  /* hotspots <-> observation list */
+  slides.forEach(s=>{
+    const items=[...s.querySelectorAll('[data-obs] li')];
+    const spots=[...s.querySelectorAll('.spot')];
+    const hl=i=>items.forEach(li=>li.classList.toggle('hl',li.dataset.i===i));
+    spots.forEach(sp=>{
+      const b=sp.querySelector('button');
+      sp.addEventListener('pointerenter',()=>hl(b.dataset.hl));
+      sp.addEventListener('pointerleave',()=>hl(null));
+      b.addEventListener('click',()=>{const o=sp.classList.toggle('open');spots.forEach(x=>x!==sp&&x.classList.remove('open'));hl(o?b.dataset.hl:null)});
+    });
+    items.forEach(li=>{
+      li.addEventListener('pointerenter',()=>{li.classList.add('hl');const sp=spots.find(x=>x.querySelector('button').dataset.hl===li.dataset.i);sp&&sp.classList.add('open')});
+      li.addEventListener('pointerleave',()=>{li.classList.remove('hl');spots.forEach(x=>x.classList.remove('open'))});
+    });
+  });
+
+  /* pavilion card glow follows the cursor */
+  document.querySelectorAll('.pav').forEach(c=>c.addEventListener('pointermove',e=>{
+    const r=c.getBoundingClientRect();
+    c.style.setProperty('--mx',(e.clientX-r.left)+'px');c.style.setProperty('--my',(e.clientY-r.top)+'px');
+  }));
+
+  /* checklist */
+  document.querySelectorAll('#check button').forEach(b=>{
+    try{if(localStorage.getItem('jinju-'+b.id)==='1')b.setAttribute('aria-pressed','true')}catch(e){}
+    b.addEventListener('click',()=>{
+      const on=b.getAttribute('aria-pressed')!=='true';b.setAttribute('aria-pressed',String(on));
+      try{localStorage.setItem('jinju-'+b.id,on?'1':'0')}catch(e){}
+    });
+  });
+
+  /* chart: 읍·면·동 — 구역 수(진주시 자연환경) / 인구(2026.10.31 주민등록, 외국인 포함) */
+  const data=[
+    {k:'동',n:14,p:274048,c:'#f2a93b',names:'천전 · 성북 · 중앙 · 상봉 · 상대 · 하대 · 상평 · 초장 · 평거 · 신안 · 이현 · 판문 · 가호 · 충무공',top:'가호동 38,565명'},
+    {k:'면',n:15,p:59081,c:'#7fb7a4',names:'내동 · 정촌 · 금곡 · 진성 · 일반성 · 이반성 · 사봉 · 지수 · 대곡 · 금산 · 집현 · 미천 · 명석 · 대평 · 수곡',top:'금산면 19,455명'},
+    {k:'읍',n:1,p:7706,c:'#e0684a',names:'문산',top:'문산읍 7,706명'}
+  ];
+  const TOTAL={n:30,p:340835};
+  let mode='p';
+  const fmt=v=>v.toLocaleString('ko-KR');
+  const groupsEl=document.getElementById('groups');
+  data.forEach((d,i)=>{
+    const g=document.createElement('button');g.className='group';g.style.setProperty('--c',d.c);g.dataset.i=i;
+    g.title=d.names;g.setAttribute('aria-label',d.k+' '+d.n+'곳: '+d.names);
+    g.innerHTML='<header><i></i><strong>'+d.k+'</strong><em>'+d.n+'곳</em></header><span class="v"></span><span class="bar"><b></b></span>';
+    groupsEl.appendChild(g);
+  });
+  const groups=[...groupsEl.children];
+  const val=d=>mode==='p'?d.p:d.n;
+  function paintGroups(){
+    groups.forEach((g,i)=>{const d=data[i],pct=Math.round(val(d)/TOTAL[mode]*1000)/10;
+      g.querySelector('.v').textContent=mode==='p'?fmt(d.p)+'명':pct+'%';g.querySelector('.bar b').style.width=pct+'%';});
+  }
+
+  /* 읍면동 지도: 경계는 진주시 행정구역 지도(doopedia, img/jinju-map.jpg)를 따라 그림, 인구는 2026.10.31 주민등록(외국인 포함) */
+  const jmap=document.getElementById('jmap'),tip=document.getElementById('mapTip'),mapWrap=document.getElementById('mapWrap');
+  const regions=[...jmap.querySelectorAll('#jregions path')],jhi=document.getElementById('jhi');
+  const ranked=regions.map(r=>+r.dataset.p).sort((a,b)=>b-a);
+  const typeColor=Object.fromEntries(data.map(d=>[d.k,d.c]));
+  /* 인구 단계색: 남색 → 옥색 → 등불색 (로그 눈금, 1,009 ~ 38,565명) */
+  const lo=Math.log(Math.min(...ranked)),hi=Math.log(Math.max(...ranked));
+  const stops=[[42,58,85],[127,183,164],[242,169,59]];
+  function ramp(p){
+    const t=(Math.log(p)-lo)/(hi-lo),s=t<.5?0:1,u=t<.5?t*2:(t-.5)*2;
+    return 'rgb('+stops[s].map((c,k)=>Math.round(c+(stops[s+1][k]-c)*u)).join(',')+')';
+  }
+  const legend=document.getElementById('mapLegend');
+  function paintMap(){
+    regions.forEach(r=>r.style.fill=mode==='p'?ramp(+r.dataset.p):typeColor[r.dataset.t]);
+    legend.innerHTML=mode==='p'
+      ?'<span>1천 명</span><span class="ramp"></span><span>3.9만 명</span>'
+      :data.map(d=>'<span><i style="background:'+d.c+'"></i>'+d.k+' '+d.n+'곳</span>').join('');
+  }
+  function showTip(r,x,y){
+    const p=+r.dataset.p,rank=ranked.indexOf(p)+1,pct=Math.round(p/TOTAL.p*1000)/10;
+    tip.innerHTML='<b>'+r.dataset.n+'<small>'+r.dataset.t+'</small></b><div class="num">'+fmt(p)+'명</div>'+
+      '<div class="meta">'+fmt(+r.dataset.h)+'세대 · 진주시의 '+pct+'%<br>30개 읍면동 중 '+rank+'위</div>';
+    const w=mapWrap.getBoundingClientRect();
+    tip.style.left=Math.max(80,Math.min(w.width-80,x-w.left))+'px';
+    tip.style.top=Math.max(110,y-w.top)+'px';
+    tip.classList.add('on');
+  }
+  function hiRegion(r){
+    regions.forEach(x=>x.classList.toggle('hi',x===r));
+    jmap.classList.toggle('dim',!!r);
+    jhi.setAttribute('d',r?r.getAttribute('d'):'');
+    if(r){const k=data.findIndex(d=>d.k===r.dataset.t);groups.forEach((g,i)=>g.classList.toggle('on',i===k));}
+    else{tip.classList.remove('on');groups.forEach(g=>g.classList.remove('on'));}
+  }
+  regions.forEach(r=>{
+    r.addEventListener('pointermove',e=>{if(!r.classList.contains('hi'))hiRegion(r);showTip(r,e.clientX,e.clientY)});
+    r.addEventListener('pointerleave',()=>hiRegion(null));
+    r.addEventListener('focus',()=>{hiRegion(r);const b=r.getBoundingClientRect();showTip(r,b.left+b.width/2,b.top+b.height/2)});
+    r.addEventListener('blur',()=>hiRegion(null));
+  });
+  /* 카드에 올리면 같은 종류(동·면·읍) 구역만 강조 */
+  function focus(i){
+    groups.forEach((g,k)=>g.classList.toggle('on',k===i));
+    regions.forEach(r=>r.classList.toggle('grp',i!=null&&r.dataset.t===data[i].k));
+    jmap.classList.toggle('dim',i!=null);
+  }
+  groups.forEach((g,i)=>{g.addEventListener('pointerenter',()=>focus(i));g.addEventListener('focus',()=>focus(i));g.addEventListener('pointerleave',()=>focus(null));g.addEventListener('blur',()=>focus(null))});
+  const modeBtns={p:document.getElementById('mode-pop'),n:document.getElementById('mode-cnt')};
+  Object.entries(modeBtns).forEach(([m,b])=>b.addEventListener('click',()=>{
+    mode=m;Object.entries(modeBtns).forEach(([k,x])=>x.setAttribute('aria-pressed',String(k===m)));
+    paintGroups();paintMap();
+  }));
+  paintGroups();paintMap();
+
+  /* chart: 교통수단별 수치 — 수단 버튼을 누르면 그래프가 바뀜 */
+  const hm=m=>m===0?'0분':(m>=60?Math.floor(m/60)+'시간 ':'')+(m%60?m%60+'분':'');
+  const tickMin=v=>v===0?'0':v<60?v+'분':(v%60?Math.floor(v/60)+'h'+v%60:v/60+'h');
+  const won=v=>v.toLocaleString('ko-KR')+'원';
+  const C={lantern:'#f2a93b',lanternHi:'#f6c878',jade:'#7fb7a4',jadeHi:'#a5d1c2',muted:'#4a5872',mutedHi:'#5d6d8a'};
+  /* 진주시 관광 누리집 › 자가용 (도착지 진주시청): [도시, km, 자가용 분, 대중교통 분] */
+  const trips=[
+    ['거제',77.4,59,99],['창원',70.3,64,80],['부산',107.7,89,134],['대구',116.7,99,136],
+    ['광주',161.4,109,149],['울산',150.3,113,258],['대전',187.5,133,163],['인천',347.8,236,258],['서울',337.7,246,233]
+  ];
+  /* 서울역 → 진주역 (코레일 시간표, bustrain.kr 2026.11.16 기준): [출발, 도착, 열차, 분] */
+  const trains=[
+    ['05:03','08:33','KTX-산천',210],['05:38','09:16','KTX-산천',218],['08:23','12:00','KTX',217],['09:33','13:07','KTX-산천',214],
+    ['10:07','13:43','KTX',216],['10:43','14:20','KTX-산천',217],['13:38','17:08','KTX',210],['15:23','18:48','KTX-산천',205],
+    ['19:25','00:45','ITX-새마을',320],['20:38','00:16','KTX-산천',218]
+  ];
+  /* 진주시외버스터미널 행선지안내 (진주시청 누리집): [행선지, 분, 요금] */
+  const buses=[
+    ['마산',60,5300],['통영 (직통)',60,5600],['삼천포',60,4400],['거제 고현',75,7800],['창원',80,5900],
+    ['김해 (직통)',90,7500],['부산 서부',90,8400],['남해',90,6500],['울산 (직통)',150,12100]
+  ];
+  /* 서울 → 진주 수단별: 항공은 김포→사천 탑승 소요 범위, KTX는 최단~최장 */
+  const fromSeoul=[
+    ['항공 (김포→사천)',[50,80],'김포–사천 약 50분~1시간 20분 · 공항 오가는 시간 제외'],
+    ['KTX (서울역→진주역)',[205,218],'KTX 3시간 25분~3시간 38분'],
+    ['대중교통 (→진주시청)',[0,233],'진주시 관광 누리집 기준'],
+    ['자가용 (→진주시청)',[0,246],'진주시 관광 누리집 기준 · 337.7km']
+  ];
+  const hamo=[['시내버스 요금 (일반·카드)',1650,C.muted],['하모콜버스 환승 적립',1650,C.jade],['실제 부담',0,C.lantern]];
+
+  const tick='#9ba4b6',grid='rgba(243,234,216,.08)';
+  const font=(s,w)=>({family:'IBM Plex Sans KR',size:s,weight:w||'400'});
+  const xTime=(max,step)=>({min:0,max,ticks:{stepSize:step,color:tick,font:{family:'IBM Plex Mono',size:11},callback:tickMin},grid:{color:grid},border:{display:false},
+    title:{display:true,text:'소요 시간',color:tick,font:font(11)}});
+  const yAxis={ticks:{color:'#f3ead8',font:font(13)},grid:{display:false},border:{color:grid}};
+  const tipBase={backgroundColor:'#f3ead8',titleColor:'#0d1320',bodyColor:'#0d1320',padding:12,cornerRadius:6,boxPadding:4,titleFont:font(14,'700'),bodyFont:font(12)};
+  const bar=(label,data,color,hi,extra)=>Object.assign({label,data,backgroundColor:color,hoverBackgroundColor:hi||color,borderRadius:3,barPercentage:.8,categoryPercentage:.72},extra||{});
+
+  const MODES={
+    car:{
+      title:'주요 도시 → 진주시청 · 자가용과 대중교통',
+      note:'창원에서 1시간, 서울에서 4시간 안팎. 울산은 대중교통이 자가용보다 2배 넘게 걸립니다.',
+      src:'출처: 진주시 관광 누리집 › 교통정보 › 자가용 (도착지 진주시청 기준)',
+      cfg:()=>({labels:trips.map(t=>t[0]),datasets:[bar('자가용',trips.map(t=>t[2]),C.lantern,C.lanternHi),bar('대중교통',trips.map(t=>t[3]),C.jade,C.jadeHi)],
+        x:xTime(270,60),legend:true,
+        title:i=>trips[i][0]+' → 진주 · 약 '+trips[i][1]+'km',label:it=>' '+it.dataset.label+'  '+hm(it.raw)})
+    },
+    train:{
+      title:'서울역 → 진주역 · 열차별 소요 시간 (하루 10편)',
+      note:'KTX는 3시간 25분 ~ 3시간 38분, 밤 ITX-새마을은 5시간 20분 걸립니다.',
+      src:'출처: 코레일 열차 시간표 (bustrain.kr 정리, 2026.11.16 기준) · 시각은 바뀔 수 있습니다',
+      cfg:()=>({labels:trains.map(t=>t[0]+' 출발'),datasets:[bar('소요 시간',trains.map(t=>t[3]),trains.map(t=>t[2].startsWith('KTX')?C.lantern:C.jade),trains.map(t=>t[2].startsWith('KTX')?C.lanternHi:C.jadeHi),{categoryPercentage:.8})],
+        x:xTime(330,60),legend:true,legendLabels:[['KTX · KTX-산천',C.lantern],['ITX-새마을',C.jade]],
+        title:i=>trains[i][2]+' · '+trains[i][0]+' → '+trains[i][1],label:it=>' 소요 '+hm(it.raw)})
+    },
+    air:{
+      title:'서울에서 진주까지 · 수단별 소요 시간',
+      note:'항공은 비행기를 탄 시간만 따진 값입니다. 공항까지, 사천공항에서 진주 시내까지 가는 시간은 빠져 있습니다.',
+      src:'출처: 김포–사천 노선 (진에어·섬에어 운항, 2026 언론 보도·나무위키) · KTX는 코레일 시간표 · 자가용·대중교통은 진주시 관광 누리집',
+      cfg:()=>({labels:fromSeoul.map(t=>t[0]),datasets:[
+          bar('최단',fromSeoul.map(t=>t[1][0]||t[1][1]),[C.lantern,C.muted,C.muted,C.muted],[C.lanternHi,C.mutedHi,C.mutedHi,C.mutedHi],{categoryPercentage:.6,stack:'s'}),
+          bar('편차',fromSeoul.map(t=>t[1][0]?t[1][1]-t[1][0]:0),['rgba(242,169,59,.4)','rgba(74,88,114,.5)','rgba(74,88,114,.5)','rgba(74,88,114,.5)'],null,{categoryPercentage:.6,stack:'s'})],
+        x:Object.assign(xTime(270,60),{stacked:true}),stackedY:true,legend:false,tipFirstOnly:true,
+        title:i=>fromSeoul[i][0],label:it=>{const v=fromSeoul[it.dataIndex][1];return ' '+(v[0]?hm(v[0])+' ~ '+hm(v[1]):'약 '+hm(v[1]))},afterLabel:it=>' '+fromSeoul[it.dataIndex][2]})
+    },
+    bus:{
+      title:'진주시외버스터미널 → 주요 도시 · 시외버스 소요 시간',
+      note:'마산·통영·삼천포는 1시간, 부산·김해는 1시간 30분. 막대에 마우스를 올리면 요금이 보입니다.',
+      src:'출처: 진주시청 누리집 › 행선지안내 (시외버스 시간표) · 요금·시간은 터미널에서 한 번 더 확인하세요',
+      cfg:()=>({labels:buses.map(t=>t[0]),datasets:[bar('시외버스',buses.map(t=>t[1]),C.jade,C.jadeHi)],
+        x:xTime(180,30),legend:false,
+        title:i=>'진주 → '+buses[i][0],label:it=>' 소요 약 '+hm(it.raw)+' · 요금 '+won(buses[it.dataIndex][2])})
+    },
+    hamo:{
+      title:'하모콜버스 · 갈아타면 요금만큼 돌려받기',
+      note:'항공·철도·시외·고속버스를 티머니GO로 이용하고 24시간 안에 하모콜버스로 갈아타면 1,650원이 적립됩니다.',
+      src:'출처: 진주시 버스정보시스템 › 이용요금 (일반 카드 1,650원) · 진주시 관광 누리집 › 하모콜버스(광역환승할인제)',
+      cfg:()=>({labels:hamo.map(t=>t[0]),datasets:[bar('금액',hamo.map(t=>t[1]),hamo.map(t=>t[2]),hamo.map(t=>t[2]),{categoryPercentage:.55,minBarLength:4})],
+        x:{min:0,max:2000,ticks:{stepSize:500,color:tick,font:{family:'IBM Plex Mono',size:11},callback:v=>v.toLocaleString('ko-KR')},grid:{color:grid},border:{display:false},
+           title:{display:true,text:'금액 (원)',color:tick,font:font(11)}},legend:false,
+        title:i=>hamo[i][0],label:it=>' '+(it.dataIndex===1?'− ':'')+won(it.raw)})
+    }
+  };
+  let travel=null,travelMode='car';
+  const tTitle=document.getElementById('travelTitle'),tNote=document.getElementById('travelNote'),tSrc=document.getElementById('travelSrc');
+  const modeCards=[...document.querySelectorAll('.mode[data-mode]')];
+  function drawTravel(){
+    const m=MODES[travelMode];
+    tTitle.textContent=m.title;tNote.textContent=m.note;tSrc.textContent=m.src;
+    if(typeof Chart==='undefined')return;
+    const c=m.cfg();
+    if(travel)travel.destroy();
+    travel=new Chart(document.getElementById('travelChart'),{
+      type:'bar',
+      data:{labels:c.labels,datasets:c.datasets},
+      options:{
+        indexAxis:'y',maintainAspectRatio:false,
+        animation:{duration:900,easing:'easeOutQuart'},
+        interaction:{mode:'index',axis:'y',intersect:false},
+        scales:{x:c.x,y:Object.assign({},yAxis,{stacked:!!c.stackedY})},
+        plugins:{
+          legend:{display:c.legend,position:'top',align:'start',onClick:c.legendLabels?()=>{}:undefined,
+            labels:Object.assign({color:'#f3ead8',boxWidth:12,boxHeight:12,useBorderRadius:true,borderRadius:2,font:font(12)},
+              c.legendLabels?{generateLabels:()=>c.legendLabels.map(([text,col])=>({text,fillStyle:col,strokeStyle:col,fontColor:'#f3ead8',lineWidth:0,borderRadius:2}))}:{})},
+          tooltip:Object.assign({},tipBase,{displayColors:c.legend&&!c.legendLabels,filter:c.tipFirstOnly?(it=>it.datasetIndex===0):undefined,callbacks:{title:items=>c.title(items[0].dataIndex),label:c.label,afterLabel:c.afterLabel||(()=>'')}})
+        }
+      }
+    });
+  }
+  modeCards.forEach(b=>b.addEventListener('click',()=>{
+    travelMode=b.dataset.mode;
+    modeCards.forEach(x=>x.setAttribute('aria-pressed',String(x===b)));
+    drawTravel();
+    /* 좁은 화면에서는 그래프가 버튼 위에 있으므로 그래프로 스크롤 */
+    if(matchMedia('(max-width:900px)').matches)document.querySelector('.chart-panel').scrollIntoView({behavior:reduce?'auto':'smooth',block:'start'});
+  }));
+
+  const start=parseInt((location.hash||'').slice(1),10);
+  go(isNaN(start)?0:start-1);
+})();
+</script>
